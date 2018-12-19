@@ -142,7 +142,7 @@ function sign_aws4!(method::String,
                            "",
                            signed_headers,
                            content_hash], "\n")
-    @debug 3 "AWS4 canonical_form: $canonical_form"
+    @debug "AWS4 canonical_form" canonical_form
 
     canonical_hash = bytes2hex(digest(MD_SHA256, canonical_form))
 
@@ -150,8 +150,8 @@ function sign_aws4!(method::String,
     string_to_sign = "AWS4-HMAC-SHA256\n$datetime\n$scope\n$canonical_hash"
     signature = bytes2hex(digest(MD_SHA256, string_to_sign, signing_key))
 
-    @debug 3 "AWS4 string_to_sign: $string_to_sign"
-    @debug 3 "AWS4 signature: $signature"
+    @debug "AWS4 string_to_sign" string_to_sign
+    @debug "AWS4 signature" signature
 
     # Append Authorization header...
     setkv(headers, "Authorization", string(
