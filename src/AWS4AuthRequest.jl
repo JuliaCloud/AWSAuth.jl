@@ -1,12 +1,15 @@
 module AWS4AuthRequest
 
-using ..Base64
-using ..Dates
-using MbedTLS: digest, MD_SHA256, MD_MD5
-import ..Layer, ..request, ..Headers
-using ..URIs
-using ..Pairs: getkv, setkv, rmkv
-import ..@debug, ..DEBUG_LEVEL
+using Base64
+using Dates
+using HTTP
+using HTTP.Pairs
+using HTTP.URIs
+using HTTP: Headers, Layer, request
+using IniFile
+using MbedTLS
+
+export AWS4AuthLayer
 
 """
     request(AWS4AuthLayer, ::URI, ::Request, body) -> HTTP.Response
@@ -19,18 +22,12 @@ Credentials are read from environment variables `AWS_ACCESS_KEY_ID`,
 `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN`.
 """
 abstract type AWS4AuthLayer{Next <: Layer} <: Layer end
-export AWS4AuthLayer
 
-function request(::Type{AWS4AuthLayer{Next}},
-                 url::URI, req, body; kw...) where Next
-
-    if !haskey(kw, :aws_access_key_id) &&
-       !haskey(ENV, "AWS_ACCESS_KEY_ID")
+function HTTP.request(::Type{AWS4AuthLayer{Next}}, url::URI, req, body; kw...) where Next
+    if !haskey(kw, :aws_access_key_id) && !haskey(ENV, "AWS_ACCESS_KEY_ID")
         kw = merge(dot_aws_credentials(), kw)
     end
-
     sign_aws4!(req.method, url, req.headers, req.body; kw...)
-
     return request(Next, url, req, body; kw...)
 end
 
@@ -163,9 +160,9 @@ function sign_aws4!(method::String,
         "SignedHeaders=$signed_headers, ",
         "Signature=$signature"
     ))
-end
 
-using IniFile
+    headers
+end
 
 credentials = NamedTuple()
 
@@ -174,24 +171,15 @@ Load Credentials from [AWS CLI ~/.aws/credentials file]
 (http://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html).
 """
 function dot_aws_credentials()::NamedTuple
-
     global credentials
-    if !isempty(credentials)
-        return credentials
-    end
-
+    isempty(credentials) || return credentials
     f = get(ENV, "AWS_CONFIG_FILE", joinpath(homedir(), ".aws", "credentials"))
+    isfile(f) || return NamedTuple()
     p = get(ENV, "AWS_DEFAULT_PROFILE", get(ENV, "AWS_PROFILE", "default"))
-
-    if !isfile(f)
-        return NamedTuple()
-    end
-
     ini = read(Inifile(), f)
-
-    credentials = (
-        aws_access_key_id = String(get(ini, p, "aws_access_key_id")),
-        aws_secret_access_key = String(get(ini, p, "aws_secret_access_key")))
+    credentials = (aws_access_key_id=String(get(ini, p, "aws_access_key_id")),
+                   aws_secret_access_key=String(get(ini, p, "aws_secret_access_key")))
+    return credentials
 end
 
 end # module AWS4AuthRequest

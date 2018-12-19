@@ -1,0 +1,11 @@
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+.DS_Store
+*.key
+*.crt
+*.swp
+Manifest.toml
+/docs/build/
+/docs/site/
+/docs/Manifest.toml
