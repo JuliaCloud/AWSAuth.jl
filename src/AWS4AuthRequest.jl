@@ -5,30 +5,34 @@ using Dates
 using HTTP
 using HTTP.Pairs
 using HTTP.URIs
-using HTTP: Headers, Layer, request
+using HTTP: Headers, Layer, Request
 using IniFile
 using MbedTLS
 
 export AWS4AuthLayer
 
 """
-    request(AWS4AuthLayer, ::URI, ::Request, body) -> HTTP.Response
+    AWS4AuthLayer{Next} <: HTTP.Layer
 
-Add a [AWS Signature Version 4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
-`Authorization` header to a `Request`.
-
-
-Credentials are read from environment variables `AWS_ACCESS_KEY_ID`,
-`AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN`.
+Abstract type used by [`HTTP.request`](@ref) to add an
+[AWS Signature v4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+authentication layer to the request.
 """
-abstract type AWS4AuthLayer{Next <: Layer} <: Layer end
+abstract type AWS4AuthLayer{Next<:Layer} <: Layer end
 
-function HTTP.request(::Type{AWS4AuthLayer{Next}}, url::URI, req, body; kw...) where Next
+"""
+    HTTP.request(::Type{AWS4AuthLayer}, url::HTTP.URI, req::HTTP.Request, body) -> HTTP.Response
+
+Perform the given request, adding a layer of AWS authentication using
+[AWS Signature v4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+An "Authorization" header to the request.
+"""
+function HTTP.request(::Type{AWS4AuthLayer{Next}}, url::URI, req::Request, body; kw...) where Next
     if !haskey(kw, :aws_access_key_id) && !haskey(ENV, "AWS_ACCESS_KEY_ID")
         kw = merge(dot_aws_credentials(), kw)
     end
     sign_aws4!(req.method, url, req.headers, req.body; kw...)
-    return request(Next, url, req, body; kw...)
+    return HTTP.request(Next, url, req, body; kw...)
 end
 
 # Normalize whitespace to the form required in the canonical headers.
@@ -44,6 +48,32 @@ function _normalize_ws(s::AbstractString)
     end
 end
 
+"""
+    sign_aws4!(method::String, url::HTTP.URI, headers::HTTP.Headers, body; kwargs...)
+
+Add an "Authorization" header to `headers`, modifying it in place.
+The header contains a computed signature based on the given credentials as well as
+metadata about what was used to compute the signature.
+For more information, see the AWS documentation on the
+[Signature v4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+process.
+
+# Keyword arguments
+
+All keyword arguments to this function are optional, as they have default values.
+
+* `body_sha256`: A precomputed SHA-256 sum of `body`
+* `body_md5`: A precomputed MD5 sum of `body`
+* `timestamp`: The timestamp used in request signing (defaults to now in UTC)
+* `aws_service`: The AWS service for the request (determined from the URL)
+* `aws_region`: The AWS region for the request (determined from the URL)
+* `aws_access_key_id`: AWS access key (read from the environment)
+* `aws_secret_access_key`: AWS secret access key (read from the environment)
+* `aws_session_token`: AWS session token (read from the environment, or empty)
+* `token_in_signature`: Use `aws_session_token` when computing the signature (`true`)
+* `include_md5`: Add the "Content-MD5" header to `headers` (`true`)
+* `include_sha256`: Add the "x-amz-content-sha256" header to `headers` (`true`)
+"""
 function sign_aws4!(method::String,
                     url::URI,
                     headers::Headers,
