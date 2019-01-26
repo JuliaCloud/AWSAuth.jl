@@ -1,9 +1,9 @@
 module AWSAuth
 
-export AWS4AuthRequest, AWS4AuthLayer
+export SignatureV4, AWS4AuthLayer
 
-include("AWS4AuthRequest.jl")
+include("signaturev4.jl")
 
-using .AWS4AuthRequest
+using .SignatureV4
 
 end # module
