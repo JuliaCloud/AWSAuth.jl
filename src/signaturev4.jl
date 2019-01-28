@@ -1,4 +1,4 @@
-module AWS4AuthRequest
+module SignatureV4
 
 using Base64
 using Dates
