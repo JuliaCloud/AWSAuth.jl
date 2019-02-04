@@ -1,26 +1,26 @@
 using Dates
 using Test
 using HTTP: Headers, URI
-using AWSAuth.SignatureV4: sign_aws4!
+using AWSAuth.SignatureV4: sign!
 
 # Based on https://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html
 # and https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
 
 function test_sign!(method, headers, params, body=""; opts...)
-    sign_aws4!(method,
-               URI("https://example.amazonaws.com/" * params),
-               headers,
-               Vector{UInt8}(body);
-               timestamp=DateTime(2015, 8, 30, 12, 36),
-               aws_service="service",
-               aws_region="us-east-1",
-               # NOTE: These are the example credentials as specified in the AWS docs,
-               # they are not real
-               aws_access_key_id="AKIDEXAMPLE",
-               aws_secret_access_key="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-               include_md5=false,
-               include_sha256=false,
-               opts...)
+    sign!(method,
+          URI("https://example.amazonaws.com/" * params),
+          headers,
+          Vector{UInt8}(body);
+          timestamp=DateTime(2015, 8, 30, 12, 36),
+          aws_service="service",
+          aws_region="us-east-1",
+          # NOTE: These are the example credentials as specified in the AWS docs,
+          # they are not real
+          aws_access_key_id="AKIDEXAMPLE",
+          aws_secret_access_key="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+          include_md5=false,
+          include_sha256=false,
+          opts...)
     headers
 end
 
@@ -158,7 +158,7 @@ const required_headers = ["Authorization", "host", "x-amz-date"]
             sh = "host;range;x-amz-content-sha256;x-amz-date"
             sig = "f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41"
             h = Headers(["Range" => "bytes=0-9"])
-            sign_aws4!("GET", URI(s3url * "/test.txt"), h, UInt8[]; opts...)
+            sign!("GET", URI(s3url * "/test.txt"), h, UInt8[]; opts...)
             d = Dict(h)
             @test d["Authorization"] == test_auth_string(sh, sig, opts.aws_access_key_id, "20130524", "s3")
             @test haskey(d, "x-amz-content-sha256") # required for S3 requests
@@ -169,11 +169,11 @@ const required_headers = ["Authorization", "host", "x-amz-date"]
             sig = "98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd"
             h = Headers(["Date" => "Fri, 24 May 2013 00:00:00 GMT",
                          "x-amz-storage-class" => "REDUCED_REDUNDANCY"])
-            sign_aws4!("PUT", URI(s3url * "/test\$file.text"), h, UInt8[];
-                       # Override the SHA-256 of the request body, since the actual body is not provided
-                       # for this example in the documentation, only the SHA
-                       body_sha256=hex2bytes("44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072"),
-                       opts...)
+            sign!("PUT", URI(s3url * "/test\$file.text"), h, UInt8[];
+                  # Override the SHA-256 of the request body, since the actual body is not provided
+                  # for this example in the documentation, only the SHA
+                  body_sha256=hex2bytes("44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072"),
+                  opts...)
             d = Dict(h)
             @test d["Authorization"] == test_auth_string(sh, sig, opts.aws_access_key_id, "20130524", "s3")
             @test haskey(d, "x-amz-content-sha256")
@@ -183,7 +183,7 @@ const required_headers = ["Authorization", "host", "x-amz-date"]
             sh = "host;x-amz-content-sha256;x-amz-date"
             sig = "fea454ca298b7da1c68078a5d1bdbfbbe0d65c699e0f91ac7a200a0136783543"
             h = Headers([])
-            sign_aws4!("GET", URI(s3url * "/?lifecycle"), h, UInt8[]; opts...)
+            sign!("GET", URI(s3url * "/?lifecycle"), h, UInt8[]; opts...)
             d = Dict(h)
             @test d["Authorization"] == test_auth_string(sh, sig, opts.aws_access_key_id, "20130524", "s3")
             @test haskey(d, "x-amz-content-sha256")
@@ -193,7 +193,7 @@ const required_headers = ["Authorization", "host", "x-amz-date"]
             sh = "host;x-amz-content-sha256;x-amz-date"
             sig = "34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7"
             h = Headers([])
-            sign_aws4!("GET", URI(s3url * "/?max-keys=2&prefix=J"), h, UInt8[]; opts...)
+            sign!("GET", URI(s3url * "/?max-keys=2&prefix=J"), h, UInt8[]; opts...)
             d = Dict(h)
             @test d["Authorization"] == test_auth_string(sh, sig, opts.aws_access_key_id, "20130524", "s3")
             @test haskey(d, "x-amz-content-sha256")

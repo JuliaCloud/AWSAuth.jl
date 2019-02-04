@@ -11,5 +11,5 @@ Currently this consists of AWS Signature v4 signing for HTTP requests sent to AW
 ```@docs
 AWSAuth.AWS4AuthLayer
 AWSAuth.SignatureV4.HTTP.request
-AWSAuth.SignatureV4.sign_aws4!
+AWSAuth.SignatureV4.sign!
 ```

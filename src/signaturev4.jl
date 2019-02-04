@@ -31,7 +31,7 @@ function HTTP.request(::Type{AWS4AuthLayer{Next}}, url::URI, req::Request, body;
     if !haskey(kw, :aws_access_key_id) && !haskey(ENV, "AWS_ACCESS_KEY_ID")
         kw = merge(dot_aws_credentials(), kw)
     end
-    sign_aws4!(req.method, url, req.headers, req.body; kw...)
+    sign!(req.method, url, req.headers, req.body; kw...)
     return HTTP.request(Next, url, req, body; kw...)
 end
 
@@ -49,7 +49,7 @@ function _normalize_ws(s::AbstractString)
 end
 
 """
-    sign_aws4!(method::String, url::HTTP.URI, headers::HTTP.Headers, body; kwargs...)
+    SignatureV4.sign!(method::String, url::HTTP.URI, headers::HTTP.Headers, body; kwargs...)
 
 Add an "Authorization" header to `headers`, modifying it in place.
 The header contains a computed signature based on the given credentials as well as
@@ -74,26 +74,26 @@ All keyword arguments to this function are optional, as they have default values
 * `include_md5`: Add the "Content-MD5" header to `headers` (`true`)
 * `include_sha256`: Add the "x-amz-content-sha256" header to `headers` (`true`)
 """
-function sign_aws4!(method::String,
-                    url::URI,
-                    headers::Headers,
-                    body::Vector{UInt8};
-                    body_sha256::Vector{UInt8}=digest(MD_SHA256, body),
-                    body_md5::Vector{UInt8}=digest(MD_MD5, body),
-                    t::Union{DateTime,Nothing}=nothing,
-                    timestamp::DateTime=now(Dates.UTC),
-                    aws_service::String=String(split(url.host, ".")[1]),
-                    aws_region::String=String(split(url.host, ".")[2]),
-                    aws_access_key_id::String=ENV["AWS_ACCESS_KEY_ID"],
-                    aws_secret_access_key::String=ENV["AWS_SECRET_ACCESS_KEY"],
-                    aws_session_token::String=get(ENV, "AWS_SESSION_TOKEN", ""),
-                    token_in_signature=true,
-                    include_md5=true,
-                    include_sha256=true,
-                    kw...)
+function sign!(method::String,
+               url::URI,
+               headers::Headers,
+               body::Vector{UInt8};
+               body_sha256::Vector{UInt8}=digest(MD_SHA256, body),
+               body_md5::Vector{UInt8}=digest(MD_MD5, body),
+               t::Union{DateTime,Nothing}=nothing,
+               timestamp::DateTime=now(Dates.UTC),
+               aws_service::String=String(split(url.host, ".")[1]),
+               aws_region::String=String(split(url.host, ".")[2]),
+               aws_access_key_id::String=ENV["AWS_ACCESS_KEY_ID"],
+               aws_secret_access_key::String=ENV["AWS_SECRET_ACCESS_KEY"],
+               aws_session_token::String=get(ENV, "AWS_SESSION_TOKEN", ""),
+               token_in_signature=true,
+               include_md5=true,
+               include_sha256=true,
+               kw...)
     if t !== nothing
-        Base.depwarn("The `t` keyword argument to `sign_aws4!` is deprecated; use " *
-                     "`timestamp` instead.", :sign_aws4!)
+        Base.depwarn("The `t` keyword argument to `sign!` is deprecated; use " *
+                     "`timestamp` instead.", :sign!)
         timestamp = t
     end
 
