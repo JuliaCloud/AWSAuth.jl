@@ -5,35 +5,9 @@ using Dates
 using HTTP
 using HTTP.Pairs
 using HTTP.URIs
-using HTTP: Headers, Layer, Request
+using HTTP: Headers
 using IniFile
 using MbedTLS
-
-export AWS4AuthLayer
-
-"""
-    AWS4AuthLayer{Next} <: HTTP.Layer
-
-Abstract type used by [`HTTP.request`](@ref) to add an
-[AWS Signature v4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
-authentication layer to the request.
-"""
-abstract type AWS4AuthLayer{Next<:Layer} <: Layer end
-
-"""
-    HTTP.request(::Type{AWS4AuthLayer}, url::HTTP.URI, req::HTTP.Request, body) -> HTTP.Response
-
-Perform the given request, adding a layer of AWS authentication using
-[AWS Signature v4](http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
-An "Authorization" header to the request.
-"""
-function HTTP.request(::Type{AWS4AuthLayer{Next}}, url::URI, req::Request, body; kw...) where Next
-    if !haskey(kw, :aws_access_key_id) && !haskey(ENV, "AWS_ACCESS_KEY_ID")
-        kw = merge(dot_aws_credentials(), kw)
-    end
-    sign!(req.method, url, req.headers, req.body; kw...)
-    return HTTP.request(Next, url, req, body; kw...)
-end
 
 # Normalize whitespace to the form required in the canonical headers.
 # Note that the expected format for multiline headers seems not to be explicitly
@@ -212,4 +186,4 @@ function dot_aws_credentials()::NamedTuple
     return credentials
 end
 
-end # module AWS4AuthRequest
+end # module
