@@ -5,7 +5,9 @@
 [![codecov](https://codecov.io/gh/JuliaCloud/AWSAuth.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaCloud/AWSAuth.jl)
 [![][docs-latest-img]][docs-latest-url]
 
-AWS authentication in Julia
+This package has been **archived**, the authorization code lives on in both:
+- https://github.com/JuliaCloud/AWS.jl
+- https://github.com/JuliaCloud/AWSCore.jl
 
 [docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-latest-url]: http://JuliaCloud.github.io/AWSAuth.jl/latest/
