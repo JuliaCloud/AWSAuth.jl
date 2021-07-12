@@ -1,6 +1,6 @@
 module AWSAuth
 
-export SignatureV4, AWS4AuthLayer
+export SignatureV4
 
 include("signaturev4.jl")
 
